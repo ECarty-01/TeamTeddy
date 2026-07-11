@@ -1,0 +1,14 @@
+import json
+from pitch_listener import calibrate_silence_threshold
+
+THRESHOLD_FILE = "threshold.json"
+
+def main():
+    threshold = calibrate_silence_threshold(seconds=5.0)
+    with open(THRESHOLD_FILE, "w") as f:
+        json.dump({"threshold": threshold}, f)
+    print(f"Calibrated silence threshold: {threshold:.4f}")
+    print(f"Saved to {THRESHOLD_FILE}")
+
+if __name__ == "__main__":
+    main()
