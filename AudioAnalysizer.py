@@ -16,7 +16,7 @@ def load_threshold():
         return 300
 
 def frequency_to_notes(freq):
-    """Converts a frequency in Hz to the closest musical note (note name only)"""
+    """Converts a frequency in Hz to the closest musical note with octave (e.g., C4, D#5)"""
     if freq < 16.35:  # Below C0
         return "Unknown"
 
@@ -28,7 +28,7 @@ def frequency_to_notes(freq):
     octaves = half // 12
     note_index = half % 12
 
-    return notes[note_index]  # Return just the note name (e.g., "C", not "C 4")
+    return notes[note_index] + str(octaves)  # Return "C4" format
 
 def get_dominant_freq(audio_data, rate):
     """Extract the dominant frequency from audio samples using Harmonic Product Spectrum"""
@@ -66,7 +66,7 @@ def detect_one_note(timeout_seconds=5):
         timeout_seconds: Maximum time to wait for a note (default 5 seconds)
     
     Returns:
-        str: The detected note name (e.g., "C", "D#", "E"), or None if timeout
+        str: The detected note name with octave (e.g., "C4", "D#5", "E3"), or None if timeout
     """
     # Audio config
     format = pyaudio.paInt16
