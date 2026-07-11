@@ -6,39 +6,39 @@ from .best_fit import fit
 from .rectangle import Rectangle
 from .note import Note
 
-# Template file paths (relative to musicScanner/)
 staff_files = [
-    "resources/template/staff2.png",
-    "resources/template/staff.png"
+    "musicScanner/resources/template/staff2.png",
+    "musicScanner/resources/template/staff.png"
 ]
 
 quarter_files = [
-    "resources/template/quarter.png",
-    "resources/template/solid-note.png"
+    "musicScanner/resources/template/quarter.png",
+    "musicScanner/resources/template/solid-note.png"
 ]
 
 sharp_files = [
-    "resources/template/sharp.png"
+    "musicScanner/resources/template/sharp.png"
 ]
 
 flat_files = [
-    "resources/template/flat-line.png",
-    "resources/template/flat-space.png"
+    "musicScanner/resources/template/flat-line.png",
+    "musicScanner/resources/template/flat-space.png"
 ]
 
 half_files = [
-    "resources/template/half-space.png",
-    "resources/template/half-note-line.png",
-    "resources/template/half-line.png",
-    "resources/template/half-note-space.png"
+    "musicScanner/resources/template/half-space.png",
+    "musicScanner/resources/template/half-note-line.png",
+    "musicScanner/resources/template/half-line.png",
+    "musicScanner/resources/template/half-note-space.png"
 ]
 
 whole_files = [
-    "resources/template/whole-space.png",
-    "resources/template/whole-note-line.png",
-    "resources/template/whole-line.png",
-    "resources/template/whole-note-space.png"
+    "musicScanner/resources/template/whole-space.png",
+    "musicScanner/resources/template/whole-note-line.png",
+    "musicScanner/resources/template/whole-line.png",
+    "musicScanner/resources/template/whole-note-space.png"
 ]
+
 
 # Load template images
 staff_imgs = [cv2.imread(staff_file, 0) for staff_file in staff_files]
