@@ -1,43 +1,54 @@
-import sys
-import subprocess
 import cv2
-import time
 import numpy as np
-from best_fit import fit
-from rectangle import Rectangle
-from note import Note
-from random import randint
-from midiutil import MIDIFile
+import time
 
+from .best_fit import fit
+from .rectangle import Rectangle
+from .note import Note
+
+# Template file paths (relative to musicScanner/)
 staff_files = [
-    "resources/template/staff2.png", 
-    "resources/template/staff.png"]
-quarter_files = [
-    "resources/template/quarter.png", 
-    "resources/template/solid-note.png"]
-sharp_files = [
-    "resources/template/sharp.png"]
-flat_files = [
-    "resources/template/flat-line.png", 
-    "resources/template/flat-space.png" ]
-half_files = [
-    "resources/template/half-space.png", 
-    "resources/template/half-note-line.png",
-    "resources/template/half-line.png", 
-    "resources/template/half-note-space.png"]
-whole_files = [
-    "resources/template/whole-space.png", 
-    "resources/template/whole-note-line.png",
-    "resources/template/whole-line.png", 
-    "resources/template/whole-note-space.png"]
+    "resources/template/staff2.png",
+    "resources/template/staff.png"
+]
 
+quarter_files = [
+    "resources/template/quarter.png",
+    "resources/template/solid-note.png"
+]
+
+sharp_files = [
+    "resources/template/sharp.png"
+]
+
+flat_files = [
+    "resources/template/flat-line.png",
+    "resources/template/flat-space.png"
+]
+
+half_files = [
+    "resources/template/half-space.png",
+    "resources/template/half-note-line.png",
+    "resources/template/half-line.png",
+    "resources/template/half-note-space.png"
+]
+
+whole_files = [
+    "resources/template/whole-space.png",
+    "resources/template/whole-note-line.png",
+    "resources/template/whole-line.png",
+    "resources/template/whole-note-space.png"
+]
+
+# Load template images
 staff_imgs = [cv2.imread(staff_file, 0) for staff_file in staff_files]
 quarter_imgs = [cv2.imread(quarter_file, 0) for quarter_file in quarter_files]
-sharp_imgs = [cv2.imread(sharp_files, 0) for sharp_files in sharp_files]
+sharp_imgs = [cv2.imread(sharp_file, 0) for sharp_file in sharp_files]
 flat_imgs = [cv2.imread(flat_file, 0) for flat_file in flat_files]
 half_imgs = [cv2.imread(half_file, 0) for half_file in half_files]
 whole_imgs = [cv2.imread(whole_file, 0) for whole_file in whole_files]
 
+# Matching parameters
 staff_lower, staff_upper, staff_thresh = 50, 150, 0.77
 sharp_lower, sharp_upper, sharp_thresh = 50, 150, 0.70
 flat_lower, flat_upper, flat_thresh = 50, 150, 0.77
@@ -53,8 +64,11 @@ def locate_images(img, templates, start, stop, threshold):
         w, h = templates[i].shape[::-1]
         w *= scale
         h *= scale
-        img_locations.append([Rectangle(pt[0], pt[1], w, h) for pt in zip(*locations[i][::-1])])
+        img_locations.append(
+            [Rectangle(pt[0], pt[1], w, h) for pt in zip(*locations[i][::-1])]
+        )
     return img_locations
+
 
 def merge_recs(recs, threshold):
     filtered_recs = []
@@ -62,31 +76,29 @@ def merge_recs(recs, threshold):
         r = recs.pop(0)
         recs.sort(key=lambda rec: rec.distance(r))
         merged = True
-        while(merged):
+        while merged:
             merged = False
             i = 0
             for _ in range(len(recs)):
                 if r.overlap(recs[i]) > threshold or recs[i].overlap(r) > threshold:
                     r = r.merge(recs.pop(i))
                     merged = True
-                elif recs[i].distance(r) > r.w/2 + recs[i].w/2:
+                elif recs[i].distance(r) > r.w / 2 + recs[i].w / 2:
                     break
                 else:
                     i += 1
         filtered_recs.append(r)
     return filtered_recs
 
-def open_file(path):
-    cmd = {'linux':'eog', 'win32':'explorer', 'darwin':'open'}[sys.platform]
-    subprocess.run([cmd, path])
 
 def process_image(img_path):
     # Load image
-    img_file = img_path
-    img = cv2.imread(img_file, 0)
-    img_gray = img
+    img_gray = cv2.imread(img_path, 0)
+    if img_gray is None:
+        return []
+
     img = cv2.cvtColor(img_gray, cv2.COLOR_GRAY2RGB)
-    ret, img_gray = cv2.threshold(img_gray, 127, 255, cv2.THRESH_BINARY)
+    _, img_gray = cv2.threshold(img_gray, 127, 255, cv2.THRESH_BINARY)
     img_width, img_height = img_gray.shape[::-1]
 
     # STAFF MATCHING
@@ -99,8 +111,10 @@ def process_image(img_path):
     staff_recs = [r for r in staff_recs if histo[r.y] > avg]
 
     staff_recs = merge_recs(staff_recs, 0.01)
-
-    staff_boxes = merge_recs([Rectangle(0, r.y, img_width, r.h) for r in staff_recs], 0.01)
+    staff_boxes = merge_recs(
+        [Rectangle(0, r.y, img_width, r.h) for r in staff_recs],
+        0.01
+    )
 
     # ACCIDENTALS
     sharp_recs = locate_images(img_gray, sharp_imgs, sharp_lower, sharp_upper, sharp_thresh)
@@ -122,20 +136,35 @@ def process_image(img_path):
     # GROUP NOTES BY STAFF
     note_groups = []
     for box in staff_boxes:
-        staff_sharps = [Note(r, "sharp", box)
-            for r in sharp_recs if abs(r.middle[1] - box.middle[1]) < box.h * 5.0 / 8.0]
+        staff_sharps = [
+            Note(r, "sharp", box)
+            for r in sharp_recs
+            if abs(r.middle[1] - box.middle[1]) < box.h * 5.0 / 8.0
+        ]
 
-        staff_flats = [Note(r, "flat", box)
-            for r in flat_recs if abs(r.middle[1] - box.middle[1]) < box.h * 5.0 / 8.0]
+        staff_flats = [
+            Note(r, "flat", box)
+            for r in flat_recs
+            if abs(r.middle[1] - box.middle[1]) < box.h * 5.0 / 8.0
+        ]
 
-        quarter_notes = [Note(r, "4,8", box, staff_sharps, staff_flats)
-            for r in quarter_recs if abs(r.middle[1] - box.middle[1]) < box.h * 5.0 / 8.0]
+        quarter_notes = [
+            Note(r, "4,8", box, staff_sharps, staff_flats)
+            for r in quarter_recs
+            if abs(r.middle[1] - box.middle[1]) < box.h * 5.0 / 8.0
+        ]
 
-        half_notes = [Note(r, "2", box, staff_sharps, staff_flats)
-            for r in half_recs if abs(r.middle[1] - box.middle[1]) < box.h * 5.0 / 8.0]
+        half_notes = [
+            Note(r, "2", box, staff_sharps, staff_flats)
+            for r in half_recs
+            if abs(r.middle[1] - box.middle[1]) < box.h * 5.0 / 8.0
+        ]
 
-        whole_notes = [Note(r, "1", box, staff_sharps, staff_flats)
-            for r in whole_recs if abs(r.middle[1] - box.middle[1]) < box.h * 5.0 / 8.0]
+        whole_notes = [
+            Note(r, "1", box, staff_sharps, staff_flats)
+            for r in whole_recs
+            if abs(r.middle[1] - box.middle[1]) < box.h * 5.0 / 8.0
+        ]
 
         staff_notes = quarter_notes + half_notes + whole_notes
         staff_notes.sort(key=lambda n: n.rec.x)
@@ -148,7 +177,7 @@ def process_image(img_path):
         j = 0
 
         while i < len(staff_notes):
-            if (staff_notes[i].rec.x > staffs[j].x and j < len(staffs)):
+            if j < len(staffs) and staff_notes[i].rec.x > staffs[j].x:
                 r = staffs[j]
                 j += 1
                 if len(note_group) > 0:
@@ -158,7 +187,8 @@ def process_image(img_path):
                 note_group.append(staff_notes[i])
                 i += 1
 
-        note_groups.append(note_group)
+        if len(note_group) > 0:
+            note_groups.append(note_group)
 
     # BUILD JSON OUTPUT
     export_notes = []
@@ -175,6 +205,8 @@ def process_image(img_path):
                 duration = 2
             elif note_type == "4,8":
                 duration = 1 if len(group) == 1 else 0.5
+            else:
+                duration = 1  # fallback
 
             group_data.append({
                 "name": note.note,
@@ -183,6 +215,4 @@ def process_image(img_path):
 
         export_notes.append(group_data)
 
-    # Return JSON instead of writing files
     return export_notes
-
