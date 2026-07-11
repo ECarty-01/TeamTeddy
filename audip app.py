@@ -31,32 +31,3 @@ def grade_performance(music_sheet_list, user_audio):
     print("Your score is: ", score ,"/", notes_amount, sep="")
     percentage = (score / notes_amount) * 100
     print("A whopping ", percentage , "%", sep="")
-
-
-# ==========================================
-# LIVE RUN SIMULATION
-# ==========================================
-# 1. Define the song the user is supposed to play
-mock_sheet_music = ["C", "E", "G", "C"]
-user_recorded_notes = []
-
-print(f"Song to play: {mock_sheet_music}")
-print("Get ready to play...")
-
-# 2. Loop through the sheet music and wait for the user to play each note live
-for i, expected_note in enumerate(mock_sheet_music):
-    print(f"\n[Note {i+1}/{len(mock_sheet_music)}] Play the next note now...")
-    
-    # Calls your exact function from AudioAnalysizer-3.py
-    # Giving the user 5 seconds per note
-    detected_note = detect_one_note(timeout_seconds=5) 
-    
-    if detected_note is None:
-        detected_note = "Unknown" # fallback if they didn't play anything
-        
-    print(f"-> Captured: {detected_note}")
-    user_recorded_notes.append(detected_note)
-
-# 3. Grade the live performance
-print("\n--- Grading Performance ---")
-grade_performance(mock_sheet_music, user_recorded_notes)
