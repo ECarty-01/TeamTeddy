@@ -1,0 +1,6 @@
+We go through each note in the ouput of music scanner and check if the audio scanner plays a close enough note/call the audio scanner propgram. 
+Then if its wrong we put like a red dot or something and the program continues repeating until there are no more notes to play from the notes of the output file. 
+might have to manually put in bpm. 
+At the end of the program running we may put up points so people can know if they did perfect(%100) excellent(90%) good(%70) bad(%40) horrible(20%)
+in terms of app design we have 3 main pages. Upload, play, and results. Optionally we may put in 1 more page for main menu. 
+Additionally we may add a play feature to hear the song. 
