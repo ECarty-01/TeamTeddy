@@ -1,4 +1,7 @@
-from flask import render_template
+from flask import Blueprint, request, jsonify, render_template
+from .scanner import run_scan
+
+bp = Blueprint("api", __name__)
 
 @bp.route("/", methods=["GET"])
 def home():
