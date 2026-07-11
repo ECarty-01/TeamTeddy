@@ -1,5 +1,5 @@
 # Import the specific function from your actual file name
-from AudioAnalysizer_3 import detect_one_note
+from AudioAnalysizer import detect_one_note
 
 valid_notes = ["A","A#","Ab","B","Bb","C","C#","D","Db","E","Eb","F","F#","G","G#","Gb"]
 
