@@ -1,16 +1,48 @@
-<!DOCTYPE html>
-<html>
+<!-- index.html -->
+<!doctype html>
+<html lang="en">
 <head>
-    <title>TeamTeddy</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Music Checker — Main Menu</title>
+  <style>
+    :root{--bg:#0f1724;--card:#0b1220;--accent:#7c3aed;--muted:#9aa4b2;--ok:#16a34a;--bad:#ef4444}
+    body{margin:0;font-family:Inter,system-ui,Segoe UI,Roboto,"Helvetica Neue",Arial;background:linear-gradient(180deg,#071029 0%,#071b2a 100%);color:#e6eef6;min-height:100vh;display:flex;align-items:center;justify-content:center}
+    .wrap{width:min(920px,94%);padding:28px;background:rgba(255,255,255,0.03);border-radius:12px;box-shadow:0 8px 30px rgba(2,6,23,0.6)}
+    h1{margin:0 0 8px;font-size:28px}
+    p{margin:0 0 18px;color:var(--muted)}
+    .grid{display:flex;gap:14px;flex-wrap:wrap}
+    .card{flex:1 1 220px;background:var(--card);padding:18px;border-radius:10px;text-align:center}
+    .card a{display:inline-block;margin-top:12px;padding:10px 14px;border-radius:8px;background:var(--accent);color:white;text-decoration:none}
+    footer{margin-top:18px;color:var(--muted);font-size:13px;text-align:center}
+  </style>
 </head>
 <body>
-    <h1>Welcome to TeamTeddy</h1>
+  <main class="wrap" role="main">
+    <h1>Music Checker</h1>
+    <p>Upload a notes file, play through the scanner, and get results. Designed for quick practice checks.</p>
 
-    <ul>
-        <li><a href="/upload">Upload Sheet Music</a></li>
-        <li><a href="/play">Play</a></li>
-        <li><a href="/results">Results</a></li>
-    </ul>
+    <div class="grid">
+      <div class="card">
+        <strong>Upload</strong>
+        <div style="margin-top:8px;color:var(--muted)">Provide the notes output file and optional BPM</div>
+        <a href="upload.html">Go to Upload</a>
+      </div>
+
+      <div class="card">
+        <strong>Play</strong>
+        <div style="margin-top:8px;color:var(--muted)">Run the checking session and hear the song</div>
+        <a href="play.html">Go to Play</a>
+      </div>
+
+      <div class="card">
+        <strong>Results</strong>
+        <div style="margin-top:8px;color:var(--muted)">See your score and per-note feedback</div>
+        <a href="results.html">Go to Results</a>
+      </div>
+    </div>
+
+    <footer>Tip: Use the Play page to listen to the song and the scanner simultaneously.</footer>
+  </main>
 </body>
 </html>
-
