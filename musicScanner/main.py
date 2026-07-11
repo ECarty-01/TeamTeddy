@@ -216,6 +216,31 @@ if __name__ == "__main__":
     for note_group in note_groups:
         print([ note.note + " " + note.sym for note in note_group])
 
+    # Convert note objects into plain dictionaries
+export_notes = []
+
+for group in note_groups:
+    group_data = []
+    for note in group:
+        group_data.append({
+            "pitch": note.pitch,
+            "name": note.note,
+            "duration_symbol": note.sym,
+            "x": note.rec.x,
+            "y": note.rec.y,
+            "w": note.rec.w,
+            "h": note.rec.h
+        })
+    export_notes.append(group_data)
+
+    import json
+    
+    with open("notes.json", "w") as f:
+        json.dump(export_notes, f, indent=2)
+    
+    print("Saved note information to notes.json")
+
+    
     midi = MIDIFile(1)
      
     track = 0   
