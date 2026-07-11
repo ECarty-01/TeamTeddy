@@ -8,34 +8,34 @@
   :root{
     --bg:#f7fbf9; --muted:#6b6f76;
     --mint:#8fd19e; --leaf:#2f8a5e; --lavender:#caa6ff; --pink:#ffb6d2; --sun:#ffd27a;
-    --card:linear-gradient(180deg,#ffffff,#fffdfb); --shadow:0 12px 30px rgba(10,12,14,0.06);
+    --card:linear-gradient(180deg,#ffffff,#fffdfb); --shadow:0 18px 50px rgba(10,12,14,0.06);
   }
   html,body{height:100%;margin:0;font-family:Inter,system-ui,Segoe UI,Roboto,Arial;background:linear-gradient(180deg,#f3f7ff,#f7fbf9);color:#123}
-  .wrap{max-width:1100px;margin:28px auto;padding:18px;border-radius:16px;background:var(--card);box-shadow:var(--shadow)}
-  header{display:flex;align-items:center;gap:12px}
-  .muted{color:var(--muted)}
-  .controls{display:flex;gap:10px;align-items:center;margin-top:12px;flex-wrap:wrap}
-  .btn{padding:10px 14px;border-radius:10px;border:none;background:linear-gradient(90deg,var(--lavender),var(--pink));color:#2b1730;font-weight:700;cursor:pointer}
+  .wrap{max-width:1200px;margin:36px auto;padding:28px;border-radius:18px;background:var(--card);box-shadow:var(--shadow)}
+  header{display:flex;align-items:center;gap:18px;margin-bottom:12px}
+  .muted{color:var(--muted);font-size:15px}
+  .controls{display:flex;gap:14px;align-items:center;margin-top:12px;flex-wrap:wrap}
+  .btn{padding:12px 16px;border-radius:12px;border:none;background:linear-gradient(90deg,var(--lavender),var(--pink));color:#2b1730;font-weight:800;cursor:pointer;font-size:15px}
   .btn.secondary{background:linear-gradient(90deg,var(--sun),#ffd9b3)}
-  .notesGrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;margin-top:14px}
-  .noteCard{background:linear-gradient(180deg,#fff,#fffefc);padding:12px;border-radius:12px;border:1px solid rgba(0,0,0,0.03);display:flex;align-items:center;gap:10px}
-  .dot{width:14px;height:14px;border-radius:50%;background:#e6eef6;border:2px solid rgba(0,0,0,0.04)}
+  .notesGrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:14px;margin-top:20px}
+  .noteCard{background:linear-gradient(180deg,#fff,#fffefc);padding:16px;border-radius:14px;border:1px solid rgba(0,0,0,0.03);display:flex;align-items:center;gap:12px;min-height:72px}
+  .dot{width:18px;height:18px;border-radius:50%;background:#e6eef6;border:2px solid rgba(0,0,0,0.04)}
   .dot.ok{background:var(--leaf)}
   .dot.bad{background:#ef4444}
-  .status{margin-top:12px;color:var(--muted)}
-  .attempts{margin-left:auto;color:var(--muted)}
-  audio{max-width:420px}
+  .status{margin-top:16px;color:var(--muted);font-size:15px}
+  .attempts{margin-left:auto;color:var(--muted);font-size:15px}
+  audio{max-width:520px}
 </style>
 </head>
 <body>
   <main class="wrap">
     <header>
-      <div style="width:64px;height:64px;border-radius:12px;background:linear-gradient(135deg,var(--mint),var(--leaf));display:flex;align-items:center;justify-content:center;color:white;font-weight:700">B</div>
+      <div style="width:84px;height:84px;border-radius:14px;background:linear-gradient(135deg,var(--mint),var(--leaf));display:flex;align-items:center;justify-content:center;color:white;font-weight:800;font-size:28px">B</div>
       <div>
-        <h2 style="margin:0">Play Session</h2>
-        <div class="muted">Run the scanner and check each note. Visual feedback appears per note.</div>
+        <h2 style="margin:0;font-size:24px">Play Session</h2>
+        <div class="muted">Run the scanner and check each note. Controls and notes are spaced for comfortable viewing.</div>
       </div>
-      <a style="margin-left:auto;color:var(--muted);text-decoration:none" href="index.html">Menu</a>
+      <a style="margin-left:auto;color:var(--muted);text-decoration:none;font-size:15px" href="index.html">Menu</a>
     </header>
 
     <section class="controls">
@@ -53,7 +53,7 @@
 
     <div id="notesArea" class="notesGrid" aria-live="polite"></div>
 
-    <div style="margin-top:14px;color:var(--muted);font-size:13px">
+    <div style="margin-top:18px;color:var(--muted);font-size:15px">
       <strong>Note</strong>: Replace the demo scanner with your real audio-scanner integration for accurate pitch detection and timing sync.
     </div>
   </main>
@@ -87,7 +87,7 @@
       const div = document.createElement('div');
       div.className = 'noteCard';
       div.id = `note-${i}`;
-      div.innerHTML = `<div style="flex:1"><strong>${n.note}</strong><div style="font-size:13px;color:#6b6f76">t=${n.time}s</div></div><div class="dot" id="dot-${i}" title="status"></div>`;
+      div.innerHTML = `<div style="flex:1"><strong style="font-size:16px">${n.note}</strong><div style="font-size:13px;color:#6b6f76">t=${n.time}s</div></div><div class="dot" id="dot-${i}" title="status"></div>`;
       notesArea.appendChild(div);
     });
   }
@@ -128,7 +128,7 @@
       for(let i=0;i<notes.length;i++){
         if(!running) break;
         if(state[i].ok) continue;
-        await sleep(250);
+        await sleep(300);
         state[i].tries++;
         attempts++;
         attemptInfo.textContent = `Attempts: ${attempts}`;
@@ -144,13 +144,12 @@
           dot.className = 'dot bad';
           dot.title = `Wrong (saw ${scanned}) — try ${state[i].tries}/${maxAttemptsPerNote}`;
           if(state[i].tries >= maxAttemptsPerNote){
-            // finalize as wrong to avoid infinite loop
             state[i].ok = false;
             remaining--;
           }
         }
       }
-      await sleep(300);
+      await sleep(400);
     }
 
     running = false;
