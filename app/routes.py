@@ -15,5 +15,11 @@ def scan():
 
 @bp.route("/", methods=["GET"])
 def home():
-    return "TeamTeddy API is running"
-
+    return """
+    <h1>TeamTeddy</h1>
+    <p>Upload sheet music to scan:</p>
+    <form action="/scan" method="POST" enctype="multipart/form-data">
+        <input type="file" name="file" accept="image/*">
+        <button type="submit">Scan</button>
+    </form>
+    """
