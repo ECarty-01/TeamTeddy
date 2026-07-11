@@ -221,47 +221,39 @@ export_notes = []
 
 for group in note_groups:
     group_data = []
+    
+    # Determine duration for this group
     for note in group:
+        note_type = note.sym
+        
+        if note_type == "1":
+            duration = 4
+            duration_symbol = "1"
+        elif note_type == "2":
+            duration = 2
+            duration_symbol = "2"
+        elif note_type == "4,8":
+            # quarter if alone, eighth if grouped
+            if len(group) == 1:
+                duration = 1
+                duration_symbol = "4"
+            else:
+                duration = 0.5
+                duration_symbol = "8"
+        
         group_data.append({
-            "pitch": int(note.pitch),
             "name": note.note,
-            "duration_symbol": note.sym,
-            "x": int(note.rec.x),
-            "y": int(note.rec.y),
-            "w": int(note.rec.w),
-            "h": int(note.rec.h)
+            "duration": duration,
         })
+    
     export_notes.append(group_data)
 
-    # SAVE JSON (outside the loop)
-    import json
-    with open("notes.json", "w") as f:
-        json.dump(export_notes, f, indent=2)
-    
-    print("Saved note information to notes.json")
-    # Convert note objects into plain dictionaries
-    export_notes = []
-    
-    for group in note_groups:
-        group_data = []
-        for note in group:
-            group_data.append({
-                "pitch": int(note.pitch),
-                "name": note.note,
-                "duration_symbol": note.sym,
-                "x": int(note.rec.x),
-                "y": int(note.rec.y),
-                "w": int(note.rec.w),
-                "h": int(note.rec.h)
-            })
-        export_notes.append(group_data)
-    
-    # SAVE JSON (outside the loop)
-    import json
-    with open("notes.json", "w") as f:
-        json.dump(export_notes, f, indent=2)
-    
-    print("Saved note information to notes.json")
+import json
+with open("notes.json", "w") as f:
+    json.dump(export_notes, f, indent=2)
+
+print("Saved note information to notes.json")
+
 
 
 
