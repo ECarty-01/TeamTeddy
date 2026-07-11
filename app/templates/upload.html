@@ -1,17 +1,126 @@
-<!DOCTYPE html>
-<html>
+<!-- upload.html -->
+<!doctype html>
+<html lang="en">
 <head>
-    <title>Upload</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Music Checker — Upload</title>
+  <style>
+    :root{--bg:#071029;--card:#071827;--accent:#06b6d4;--muted:#9aa4b2}
+    body{margin:0;font-family:Inter,system-ui,Segoe UI,Roboto,Arial;background:var(--bg);color:#e6eef6;min-height:100vh;display:flex;align-items:center;justify-content:center}
+    .wrap{width:min(980px,96%);padding:22px;background:rgba(255,255,255,0.03);border-radius:12px}
+    h2{margin:0 0 8px}
+    .row{display:flex;gap:12px;align-items:center}
+    input[type=file]{color:transparent}
+    textarea{width:100%;height:160px;background:#021226;color:#dbeafe;border-radius:8px;padding:10px;border:1px solid rgba(255,255,255,0.04)}
+    table{width:100%;border-collapse:collapse;margin-top:12px}
+    th,td{padding:8px;border-bottom:1px solid rgba(255,255,255,0.03);text-align:left;font-size:14px}
+    .btn{background:var(--accent);color:#022;padding:8px 12px;border-radius:8px;text-decoration:none;border:none;cursor:pointer}
+    .muted{color:var(--muted);font-size:13px}
+  </style>
 </head>
 <body>
-    <h1>Upload Sheet Music</h1>
+  <main class="wrap">
+    <h2>Upload Notes File</h2>
+    <p class="muted">Supported: JSON with a notes array or CSV with time,note columns. Example JSON: {"notes":[{"time":0,"note":"C4"}]}</p>
 
-    <form action="/scan" method="POST" enctype="multipart/form-data">
-        <input type="file" name="file" accept="image/*">
-        <button type="submit">Scan</button>
-    </form>
+    <div style="display:flex;gap:12px;align-items:center;margin-bottom:12px">
+      <input id="file" type="file" accept=".json,.csv" />
+      <label class="muted">BPM</label>
+      <input id="bpm" type="number" value="120" min="20" max="400" style="width:90px;padding:6px;border-radius:6px;border:1px solid rgba(255,255,255,0.04);background:#021226;color:#e6eef6" />
+      <button id="parse" class="btn">Parse</button>
+      <a href="index.html" style="margin-left:auto;color:var(--muted);text-decoration:none">Back</a>
+    </div>
 
-    <p><a href="/">Back to Main Menu</a></p>
+    <textarea id="preview" placeholder="Parsed notes preview will appear here"></textarea>
+
+    <table id="notesTable" aria-live="polite" style="display:none">
+      <thead><tr><th>#</th><th>Time (s)</th><th>Note</th></tr></thead>
+      <tbody></tbody>
+    </table>
+
+    <div style="margin-top:12px">
+      <button id="saveSession" class="btn" style="display:none">Save Session and Go to Play</button>
+    </div>
+  </main>
+
+  <script>
+    // Simple client-side parser and session store (localStorage)
+    const fileInput = document.getElementById('file');
+    const parseBtn = document.getElementById('parse');
+    const preview = document.getElementById('preview');
+    const notesTable = document.getElementById('notesTable');
+    const notesTbody = notesTable.querySelector('tbody');
+    const bpmInput = document.getElementById('bpm');
+    const saveBtn = document.getElementById('saveSession');
+
+    function parseCSV(text){
+      const lines = text.trim().split(/\r?\n/).map(l=>l.trim()).filter(Boolean);
+      const rows = lines.map(l=>l.split(',').map(s=>s.trim()));
+      const notes = [];
+      for(let r of rows){
+        if(r.length>=2){
+          const t = parseFloat(r[0]);
+          const n = r[1];
+          if(!isNaN(t)) notes.push({time:t,note:n});
+        }
+      }
+      return notes;
+    }
+
+    function parseJSON(text){
+      try{
+        const obj = JSON.parse(text);
+        if(Array.isArray(obj.notes)) return obj.notes.map(n=>({time: Number(n.time), note: String(n.note)}));
+      }catch(e){}
+      return null;
+    }
+
+    parseBtn.addEventListener('click', async ()=>{
+      const bpm = Number(bpmInput.value) || 120;
+      if(fileInput.files.length===0){
+        alert('Please choose a file or paste content into the preview area.');
+        return;
+      }
+      const f = fileInput.files[0];
+      const txt = await f.text();
+      let notes = parseJSON(txt);
+      if(!notes) notes = parseCSV(txt);
+      if(!notes || notes.length===0){
+        preview.value = 'Could not parse notes. Paste content here or use JSON/CSV format.';
+        return;
+      }
+      // normalize times to seconds if they were beats (optional heuristic)
+      // For now assume times are seconds.
+      preview.value = JSON.stringify({bpm, notes}, null, 2);
+      notesTbody.innerHTML = '';
+      notes.forEach((n,i)=>{
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td>${i+1}</td><td>${n.time.toFixed(3)}</td><td>${n.note}</td>`;
+        notesTbody.appendChild(tr);
+      });
+      notesTable.style.display = '';
+      saveBtn.style.display = 'inline-block';
+      // store session in localStorage for Play page
+      localStorage.setItem('musicCheckerSession', JSON.stringify({bpm, notes}));
+    });
+
+    saveBtn.addEventListener('click', ()=>{
+      window.location.href = 'play.html';
+    });
+
+    // allow manual paste parsing
+    preview.addEventListener('blur', ()=>{
+      const txt = preview.value.trim();
+      if(!txt) return;
+      let notes = parseJSON(txt);
+      if(!notes) notes = parseCSV(txt);
+      if(notes && notes.length){
+        localStorage.setItem('musicCheckerSession', JSON.stringify({bpm: Number(bpmInput.value)||120, notes}));
+      }
+    });
+  </script>
 </body>
 </html>
+
 
