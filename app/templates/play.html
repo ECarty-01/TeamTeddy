@@ -1,14 +1,185 @@
-<!DOCTYPE html>
-<html>
+<!-- play.html -->
+<!doctype html>
+<html lang="en">
 <head>
-    <title>Play</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Music Checker — Play</title>
+  <style>
+    :root{--bg:#071029;--card:#071827;--accent:#f59e0b;--ok:#16a34a;--bad:#ef4444;--muted:#9aa4b2}
+    body{margin:0;font-family:Inter,system-ui,Segoe UI,Roboto,Arial;background:var(--bg);color:#e6eef6;min-height:100vh;display:flex;align-items:flex-start;justify-content:center;padding:28px}
+    .wrap{width:min(1100px,96%);background:rgba(255,255,255,0.03);padding:18px;border-radius:12px}
+    header{display:flex;align-items:center;gap:12px}
+    .controls{margin-top:12px;display:flex;gap:10px;align-items:center}
+    .btn{background:var(--accent);color:#071827;padding:8px 12px;border-radius:8px;border:none;cursor:pointer}
+    .muted{color:var(--muted)}
+    .notesGrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px;margin-top:14px}
+    .noteCard{background:#021226;padding:10px;border-radius:8px;display:flex;align-items:center;gap:8px}
+    .dot{width:14px;height:14px;border-radius:50%;background:#334155}
+    .dot.ok{background:var(--ok)}
+    .dot.bad{background:var(--bad)}
+    .attempts{font-size:13px;color:var(--muted);margin-left:auto}
+  </style>
 </head>
 <body>
-    <h1>Play Mode</h1>
+  <main class="wrap">
+    <header>
+      <h2 style="margin:0">Play Session</h2>
+      <div class="muted">Run the scanner and check each note</div>
+      <a href="index.html" style="margin-left:auto;color:var(--muted);text-decoration:none">Back</a>
+    </header>
 
-    <p>This is where the audio scanner will listen to your notes.</p>
+    <section class="controls">
+      <label class="muted">Song audio</label>
+      <input id="audioFile" type="file" accept="audio/*" />
+      <audio id="audioPlayer" controls style="max-width:420px"></audio>
 
-    <p><a href="/">Back to Main Menu</a></p>
+      <button id="start" class="btn">Start Session</button>
+      <button id="stop" class="btn" style="background:#334155">Stop</button>
+
+      <div class="attempts" id="attemptInfo">Attempts: 0</div>
+    </section>
+
+    <div id="status" style="margin-top:12px;color:var(--muted)">Load a session from Upload or paste notes into localStorage.</div>
+
+    <div id="notesArea" class="notesGrid" aria-live="polite" style="margin-top:12px"></div>
+
+    <div style="margin-top:14px;color:var(--muted);font-size:13px">
+      <strong>How it works</strong>: The page reads the parsed notes from localStorage. For each note it calls a scanner function to get the played note at that time. If the scanned note matches the expected note within tolerance, the note is marked correct. Wrong notes are retried until all are correct or attempts exceed a limit.
+    </div>
+  </main>
+
+  <script>
+    // Load session
+    let session = JSON.parse(localStorage.getItem('musicCheckerSession') || 'null');
+    const notesArea = document.getElementById('notesArea');
+    const status = document.getElementById('status');
+    const startBtn = document.getElementById('start');
+    const stopBtn = document.getElementById('stop');
+    const audioPlayer = document.getElementById('audioPlayer');
+    const audioFile = document.getElementById('audioFile');
+    const attemptInfo = document.getElementById('attemptInfo');
+
+    if(!session){
+      status.textContent = 'No session found. Please upload notes on the Upload page.';
+    } else {
+      status.textContent = `Loaded ${session.notes.length} notes at ${session.bpm} BPM.`;
+      renderNotes(session.notes);
+    }
+
+    audioFile.addEventListener('change', async (e)=>{
+      const f = e.target.files[0];
+      if(!f) return;
+      audioPlayer.src = URL.createObjectURL(f);
+    });
+
+    function renderNotes(notes){
+      notesArea.innerHTML = '';
+      notes.forEach((n,i)=>{
+        const div = document.createElement('div');
+        div.className = 'noteCard';
+        div.id = `note-${i}`;
+        div.innerHTML = `<div style="flex:1"><strong>${n.note}</strong><div class="muted" style="font-size:13px">t=${n.time}s</div></div><div class="dot" id="dot-${i}" title="status"></div>`;
+        notesArea.appendChild(div);
+      });
+    }
+
+    // Replace this with your real audio scanner integration.
+    // For demo: simulated scanner that returns the expected note with 80% probability,
+    // or a wrong note otherwise. It also supports a "tolerance" check.
+    function getScannedNoteAt(expectedNote, time){
+      // Simulate latency and randomness
+      const rand = Math.random();
+      if(rand < 0.8) return expectedNote; // correct
+      // return a wrong note (shifted)
+      const notes = ['C3','D3','E3','F3','G3','A3','B3','C4','D4','E4','F4','G4','A4','B4','C5'];
+      return notes[Math.floor(Math.random()*notes.length)];
+    }
+
+    // Simple equality check; replace with pitch tolerance logic if needed.
+    function isMatch(expected, scanned){
+      return expected.toLowerCase() === scanned.toLowerCase();
+    }
+
+    let running = false;
+    let attempts = 0;
+    const maxAttemptsPerNote = 6;
+
+    startBtn.addEventListener('click', async ()=>{
+      if(!session){ alert('No session loaded.'); return; }
+      if(running) return;
+      running = true;
+      attempts = 0;
+      attemptInfo.textContent = `Attempts: ${attempts}`;
+      status.textContent = 'Session running...';
+      // Optionally start audio playback in sync
+      if(audioPlayer.src){
+        try{ await audioPlayer.play(); }catch(e){}
+      }
+      await runSession(session.notes);
+    });
+
+    stopBtn.addEventListener('click', ()=>{
+      running = false;
+      status.textContent = 'Stopped by user.';
+      try{ audioPlayer.pause(); }catch(e){}
+    });
+
+    async function runSession(notes){
+      // Track per-note state
+      const state = notes.map(n=>({ok:false, tries:0}));
+      let remaining = notes.length;
+      // Loop until all ok or attempts exhausted
+      while(running && remaining>0){
+        for(let i=0;i<notes.length;i++){
+          if(!running) break;
+          const n = notes[i];
+          if(state[i].ok) continue;
+          // simulate waiting until note time; in a real app you'd sync to audio time
+          // For demo we wait a short interval
+          await sleep(250);
+          state[i].tries++;
+          attempts++;
+          attemptInfo.textContent = `Attempts: ${attempts}`;
+          // call scanner
+          const scanned = getScannedNoteAt(n.note, n.time);
+          const match = isMatch(n.note, scanned);
+          const dot = document.getElementById(`dot-${i}`);
+          if(match){
+            state[i].ok = true;
+            dot.className = 'dot ok';
+            dot.title = `Correct (${scanned})`;
+            remaining--;
+          } else {
+            dot.className = 'dot bad';
+            dot.title = `Wrong (saw ${scanned}) — try ${state[i].tries}/${maxAttemptsPerNote}`;
+            // if exceeded tries, mark as final wrong and continue
+            if(state[i].tries >= maxAttemptsPerNote){
+              state[i].ok = false;
+              // leave as bad and reduce remaining to avoid infinite loop
+              remaining--;
+            }
+          }
+        }
+        // small pause between passes
+        await sleep(300);
+      }
+
+      running = false;
+      // compute score
+      const correct = state.filter(s=>s.ok).length;
+      const total = state.length;
+      const pct = Math.round((correct/total)*100);
+      status.textContent = `Session complete. ${correct}/${total} correct (${pct}%).`;
+      // save results to localStorage for Results page
+      localStorage.setItem('musicCheckerResults', JSON.stringify({
+        total, correct, pct, perNote: state.map((s,i)=>({note: notes[i].note, ok: s.ok, tries: s.tries}))
+      }));
+      // navigate to results automatically
+      setTimeout(()=> window.location.href = 'results.html', 900);
+    }
+
+    function sleep(ms){ return new Promise(r=>setTimeout(r, ms)); }
+  </script>
 </body>
 </html>
-
