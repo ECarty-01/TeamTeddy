@@ -4,3 +4,5 @@ might have to manually put in bpm.
 At the end of the program running we may put up points so people can know if they did perfect(%100) excellent(90%) good(%70) bad(%40) horrible(20%)
 in terms of app design we have 3 main pages. Upload, play, and results. Optionally we may put in 1 more page for main menu. 
 Additionally we may add a play feature to hear the song. 
+
+In the end the program should accept a pdf, scan it, then on the play page there should be a button that gives a countdown to start where an indicators goes through the pdf allowing people to play along. No audio. It should then tell the user what notes they missed and give a score on the results page. 
