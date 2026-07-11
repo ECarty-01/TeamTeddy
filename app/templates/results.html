@@ -8,38 +8,40 @@
   :root{
     --bg:#f7fbf9; --muted:#6b6f76;
     --mint:#8fd19e; --leaf:#2f8a5e; --lavender:#caa6ff; --pink:#ffb6d2; --sun:#ffd27a;
-    --shadow:0 12px 30px rgba(10,12,14,0.06);
+    --shadow:0 18px 50px rgba(10,12,14,0.06);
   }
   html,body{height:100%;margin:0;font-family:Inter,system-ui,Segoe UI,Roboto,Arial;background:linear-gradient(180deg,#f3f7ff,#f7fbf9);color:#123}
-  .wrap{max-width:980px;margin:28px auto;padding:18px;border-radius:16px;background:linear-gradient(180deg,#fff,#fffefc);box-shadow:var(--shadow)}
-  h2{margin:0}
-  .muted{color:var(--muted)}
-  .score{display:flex;align-items:center;gap:18px;margin-top:12px}
-  .big{font-size:48px;font-weight:800;color:var(--leaf)}
-  .noteList{margin-top:14px;border-radius:10px;overflow:hidden}
-  .noteRow{display:flex;gap:12px;padding:10px;background:linear-gradient(180deg,#fff,#fffefc);border-bottom:1px solid rgba(0,0,0,0.03);align-items:center}
-  .dot{width:14px;height:14px;border-radius:50%}
+  .wrap{max-width:1200px;margin:36px auto;padding:28px;border-radius:18px;background:linear-gradient(180deg,#fff,#fffefc);box-shadow:var(--shadow)}
+  header{display:flex;align-items:center;gap:18px;margin-bottom:12px}
+  h2{margin:0;font-size:24px}
+  .muted{color:var(--muted);font-size:15px}
+  .score{display:flex;align-items:center;gap:22px;margin-top:12px}
+  .big{font-size:64px;font-weight:900;color:var(--leaf);line-height:1}
+  .noteList{margin-top:18px;border-radius:12px;overflow:hidden}
+  .noteRow{display:flex;gap:16px;padding:14px;background:linear-gradient(180deg,#fff,#fffefc);border-bottom:1px solid rgba(0,0,0,0.03);align-items:center}
+  .dot{width:18px;height:18px;border-radius:50%}
   .dot.ok{background:var(--leaf)}
   .dot.bad{background:#ef4444}
-  .btn{padding:10px 14px;border-radius:10px;border:none;background:linear-gradient(90deg,var(--lavender),var(--pink));color:#2b1730;font-weight:700;cursor:pointer}
+  .btn{padding:12px 16px;border-radius:12px;border:none;background:linear-gradient(90deg,var(--lavender),var(--pink));color:#2b1730;font-weight:800;cursor:pointer;font-size:15px}
+  .btn.secondary{background:linear-gradient(90deg,var(--sun),#ffd9b3)}
 </style>
 </head>
 <body>
   <main class="wrap">
-    <header style="display:flex;align-items:center;gap:12px">
-      <div style="width:64px;height:64px;border-radius:12px;background:linear-gradient(135deg,var(--mint),var(--leaf));display:flex;align-items:center;justify-content:center;color:white;font-weight:700">B</div>
+    <header>
+      <div style="width:84px;height:84px;border-radius:14px;background:linear-gradient(135deg,var(--mint),var(--leaf));display:flex;align-items:center;justify-content:center;color:white;font-weight:800;font-size:28px">B</div>
       <div>
         <h2>Results</h2>
         <div class="muted">Summary of your session and per-note feedback.</div>
       </div>
-      <a style="margin-left:auto;color:var(--muted);text-decoration:none" href="index.html">Menu</a>
+      <a style="margin-left:auto;color:var(--muted);text-decoration:none;font-size:15px" href="index.html">Menu</a>
     </header>
 
     <div id="summary"></div>
 
-    <div style="margin-top:12px">
+    <div style="margin-top:18px">
       <button id="backToMenu" class="btn">Main Menu</button>
-      <button id="retryPlay" class="btn" style="background:linear-gradient(90deg,var(--sun),#ffd9b3);margin-left:8px">Retry Play</button>
+      <button id="retryPlay" class="btn secondary" style="margin-left:12px">Retry Play</button>
     </div>
 
     <div id="details"></div>
@@ -56,7 +58,7 @@
   retry.addEventListener('click', ()=> location.href='play.html');
 
   if(!results){
-    summary.innerHTML = '<div class="muted" style="margin-top:12px">No results found. Run a session first.</div>';
+    summary.innerHTML = '<div class="muted" style="margin-top:18px">No results found. Run a session first.</div>';
   } else {
     const {total, correct, pct, perNote} = results;
     const grade = getGrade(pct);
@@ -64,24 +66,24 @@
       <div class="score">
         <div class="big">${pct}%</div>
         <div>
-          <div style="font-weight:700">${correct}/${total} correct</div>
-          <div class="muted">${grade.label} — ${grade.desc}</div>
+          <div style="font-weight:800;font-size:18px">${correct}/${total} correct</div>
+          <div class="muted" style="margin-top:6px">${grade.label} — ${grade.desc}</div>
         </div>
       </div>
-      <div style="margin-top:12px;display:flex;gap:12px">
-        <div style="display:flex;align-items:center;gap:8px"><div style="width:12px;height:12px;border-radius:50%;background:var(--leaf)"></div><div class="muted">Correct</div></div>
-        <div style="display:flex;align-items:center;gap:8px"><div style="width:12px;height:12px;border-radius:50%;background:#ef4444"></div><div class="muted">Wrong</div></div>
+      <div style="margin-top:16px;display:flex;gap:18px">
+        <div style="display:flex;align-items:center;gap:10px"><div style="width:14px;height:14px;border-radius:50%;background:var(--leaf)"></div><div class="muted">Correct</div></div>
+        <div style="display:flex;align-items:center;gap:10px"><div style="width:14px;height:14px;border-radius:50%;background:#ef4444"></div><div class="muted">Wrong</div></div>
       </div>
     `;
 
     const rows = perNote.map((p,i)=>`
       <div class="noteRow">
-        <div style="width:40px;text-align:center">${i+1}</div>
-        <div style="flex:1"><strong>${p.note}</strong><div class="muted" style="font-size:13px">tries: ${p.tries}</div></div>
-        <div style="width:14px;height:14px;border-radius:50%" class="${p.ok ? 'dot ok' : 'dot bad'}"></div>
+        <div style="width:48px;text-align:center;font-weight:700">${i+1}</div>
+        <div style="flex:1"><strong style="font-size:16px">${p.note}</strong><div class="muted" style="font-size:13px;margin-top:6px">tries: ${p.tries}</div></div>
+        <div style="width:18px;height:18px;border-radius:50%" class="${p.ok ? 'dot ok' : 'dot bad'}"></div>
       </div>
     `).join('');
-    details.innerHTML = `<div class="noteList" style="margin-top:14px">${rows}</div>`;
+    details.innerHTML = `<div class="noteList" style="margin-top:18px">${rows}</div>`;
   }
 
   function getGrade(pct){
