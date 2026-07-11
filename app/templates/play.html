@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Bloom Music Checker — Play</title>
+<title>Bloom Music Checker — Play (PDF / Image Viewer)</title>
 <style>
   :root{
     --bg:#f7fbf9; --muted:#6b6f76;
@@ -25,6 +25,25 @@
   .status{margin-top:16px;color:var(--muted);font-size:15px}
   .attempts{margin-left:auto;color:var(--muted);font-size:15px}
   audio{max-width:520px}
+
+  /* Viewer layout */
+  .viewerWrap{display:flex;gap:18px;margin-top:20px;align-items:flex-start}
+  .pdfPanel{flex:1 1 680px;background:linear-gradient(180deg,#fff,#fffefc);border-radius:12px;padding:12px;border:1px solid rgba(0,0,0,0.03);min-height:560px;display:flex;flex-direction:column}
+  .pdfControls{display:flex;gap:8px;align-items:center;margin-bottom:8px}
+  .viewerArea{flex:1;border-radius:8px;overflow:hidden;background:#f6f8fb;border:1px solid rgba(0,0,0,0.04);display:flex;align-items:center;justify-content:center;position:relative}
+  .viewerArea iframe, .viewerArea img{max-width:100%;max-height:100%;display:block}
+  .imgContainer{width:100%;height:100%;overflow:auto;display:flex;align-items:center;justify-content:center}
+  .sidePanel{width:320px;min-width:260px;max-width:360px;background:linear-gradient(180deg,#fff,#fffefc);border-radius:12px;padding:12px;border:1px solid rgba(0,0,0,0.03)}
+  .small{font-size:13px;color:var(--muted)}
+  .fileLabel{display:inline-block;padding:10px 12px;border-radius:10px;background:linear-gradient(90deg,#f0f4ff,#fff0f6);cursor:pointer;border:1px solid rgba(0,0,0,0.03)}
+  .openNew{background:transparent;border:0;color:var(--leaf);font-weight:700;cursor:pointer}
+  .zoomControls{display:flex;gap:8px;align-items:center;margin-left:auto}
+  .zoomBtn{background:transparent;border:1px solid rgba(0,0,0,0.06);padding:6px 8px;border-radius:8px;cursor:pointer}
+  .hidden{display:none}
+  @media (max-width:980px){
+    .viewerWrap{flex-direction:column}
+    .sidePanel{width:100%}
+  }
 </style>
 </head>
 <body>
@@ -33,12 +52,12 @@
       <div style="width:84px;height:84px;border-radius:14px;background:linear-gradient(135deg,var(--mint),var(--leaf));display:flex;align-items:center;justify-content:center;color:white;font-weight:800;font-size:28px">B</div>
       <div>
         <h2 style="margin:0;font-size:24px">Play Session</h2>
-        <div class="muted">Run the scanner and check each note. Controls and notes are spaced for comfortable viewing.</div>
+        <div class="muted">Upload a PDF or image of the sheet music to view while you play along. The scanner runs as before.</div>
       </div>
       <a style="margin-left:auto;color:var(--muted);text-decoration:none;font-size:15px" href="index.html">Menu</a>
     </header>
 
-    <section class="controls">
+    <section class="controls" aria-label="Playback controls">
       <label class="muted">Song audio</label>
       <input id="audioFile" type="file" accept="audio/*" />
       <audio id="audioPlayer" controls></audio>
@@ -49,16 +68,53 @@
       <div class="attempts" id="attemptInfo">Attempts: 0</div>
     </section>
 
-    <div id="status" class="status">Load a session from Upload or paste notes into localStorage.</div>
+    <div id="status" class="status">Load a session from Upload or paste notes into localStorage. Choose a PDF or image to show in the sheet-music panel.</div>
 
-    <div id="notesArea" class="notesGrid" aria-live="polite"></div>
+    <div class="viewerWrap" aria-live="polite">
+      <!-- Viewer panel -->
+      <div class="pdfPanel" aria-label="Sheet music viewer">
+        <div class="pdfControls">
+          <label class="fileLabel" for="sheetFile">Choose PDF or Image</label>
+          <input id="sheetFile" type="file" accept="application/pdf,image/*" style="display:none" />
+          <button id="openSheetNew" class="openNew" title="Open sheet in new tab">Open in new tab</button>
+
+          <div class="zoomControls" title="Zoom controls">
+            <button id="zoomOut" class="zoomBtn">−</button>
+            <span id="zoomVal" style="display:inline-block;width:48px;text-align:center">100%</span>
+            <button id="zoomIn" class="zoomBtn">+</button>
+          </div>
+        </div>
+
+        <div class="viewerArea" id="viewerArea" style="min-height:480px;">
+          <!-- iframe or image container will be injected here -->
+          <div id="placeholder" style="color:var(--muted);font-size:15px">No sheet loaded. Choose a PDF or image to view here.</div>
+        </div>
+      </div>
+
+      <!-- Side panel: notes and per-note feedback -->
+      <aside class="sidePanel" aria-label="Notes and feedback">
+        <div style="font-weight:700;margin-bottom:8px">Notes</div>
+        <div id="notesArea" class="notesGrid" style="display:block"></div>
+
+        <div style="margin-top:16px">
+          <div style="font-weight:700">Session info</div>
+          <div class="small" id="sessionInfo" style="margin-top:6px">No session loaded.</div>
+        </div>
+
+        <div style="margin-top:14px">
+          <div style="font-weight:700">Sheet file</div>
+          <div class="small" id="sheetName" style="margin-top:6px">No file loaded</div>
+        </div>
+      </aside>
+    </div>
 
     <div style="margin-top:18px;color:var(--muted);font-size:15px">
-      <strong>Note</strong>: Replace the demo scanner with your real audio-scanner integration for accurate pitch detection and timing sync.
+      <strong>Note</strong>: The viewer uses the browser's built-in PDF support for PDFs and a simple image container for images. Use the Open in new tab button for full PDF navigation.
     </div>
   </main>
 
 <script>
+  // Elements
   let session = JSON.parse(localStorage.getItem('musicCheckerSession') || 'null');
   const notesArea = document.getElementById('notesArea');
   const status = document.getElementById('status');
@@ -68,31 +124,132 @@
   const audioFile = document.getElementById('audioFile');
   const attemptInfo = document.getElementById('attemptInfo');
 
+  const sheetFile = document.getElementById('sheetFile');
+  const viewerArea = document.getElementById('viewerArea');
+  const placeholder = document.getElementById('placeholder');
+  const sheetName = document.getElementById('sheetName');
+  const openSheetNew = document.getElementById('openSheetNew');
+  const zoomIn = document.getElementById('zoomIn');
+  const zoomOut = document.getElementById('zoomOut');
+  const zoomVal = document.getElementById('zoomVal');
+
+  let sheetBlobUrl = '';
+  let sheetType = ''; // 'pdf' or 'image'
+  let imgZoom = 1;
+
+  // Load session notes if present
   if(!session){
     status.textContent = 'No session found. Please upload notes on the Upload page.';
   } else {
     status.textContent = `Loaded ${session.notes.length} notes at ${session.bpm} BPM.`;
     renderNotes(session.notes);
+    document.getElementById('sessionInfo').textContent = `${session.notes.length} notes · ${session.bpm} BPM`;
   }
 
+  // Audio file handling
   audioFile.addEventListener('change', (e)=>{
     const f = e.target.files[0];
     if(!f) return;
     audioPlayer.src = URL.createObjectURL(f);
   });
 
+  // Sheet file handling
+  document.querySelector('.fileLabel').addEventListener('click', ()=> sheetFile.click());
+  sheetFile.addEventListener('change', (e)=>{
+    const f = e.target.files[0];
+    if(!f) return;
+    loadSheetFile(f);
+  });
+
+  function loadSheetFile(file){
+    if(sheetBlobUrl) URL.revokeObjectURL(sheetBlobUrl);
+    sheetBlobUrl = URL.createObjectURL(file);
+    sheetName.textContent = file.name;
+    openSheetNew.onclick = ()=> window.open(sheetBlobUrl, '_blank');
+
+    // detect type
+    if(file.type === 'application/pdf'){
+      sheetType = 'pdf';
+      renderPDF(sheetBlobUrl);
+    } else if(file.type.startsWith('image/')){
+      sheetType = 'image';
+      renderImage(sheetBlobUrl);
+    } else {
+      sheetType = '';
+      showPlaceholder('Unsupported file type. Choose a PDF or image.');
+    }
+  }
+
+  function showPlaceholder(text){
+    viewerArea.innerHTML = '';
+    const p = document.createElement('div');
+    p.style.color = 'var(--muted)';
+    p.style.fontSize = '15px';
+    p.textContent = text;
+    viewerArea.appendChild(p);
+  }
+
+  function renderPDF(url){
+    viewerArea.innerHTML = '';
+    const iframe = document.createElement('iframe');
+    iframe.src = url;
+    iframe.style.width = '100%';
+    iframe.style.height = '100%';
+    iframe.setAttribute('title','Sheet PDF');
+    iframe.setAttribute('sandbox','allow-same-origin allow-scripts');
+    viewerArea.appendChild(iframe);
+    // reset zoom UI for PDF (we scale container)
+    imgZoom = 1;
+    updateZoom();
+  }
+
+  function renderImage(url){
+    viewerArea.innerHTML = '';
+    const container = document.createElement('div');
+    container.className = 'imgContainer';
+    const img = document.createElement('img');
+    img.src = url;
+    img.alt = 'Sheet image';
+    img.style.transformOrigin = 'center center';
+    img.style.maxWidth = '100%';
+    img.style.maxHeight = '100%';
+    container.appendChild(img);
+    viewerArea.appendChild(container);
+    imgZoom = 1;
+    updateZoom();
+    // allow double-click to reset zoom
+    img.addEventListener('dblclick', ()=> { imgZoom = 1; updateZoom(); });
+  }
+
+  // Zoom controls apply to both PDF container and image
+  function updateZoom(){
+    zoomVal.textContent = Math.round(imgZoom*100) + '%';
+    // scale the viewerArea content
+    // For PDF we scale the inner iframe via transform on viewerArea
+    viewerArea.style.transformOrigin = 'top left';
+    viewerArea.style.transform = `scale(${imgZoom})`;
+    // adjust height so scaled content remains visible
+    viewerArea.style.height = `${Math.max(480, Math.round(480 / imgZoom))}px`;
+  }
+  zoomIn.addEventListener('click', ()=> { imgZoom = Math.min(2.5, imgZoom + 0.1); updateZoom(); });
+  zoomOut.addEventListener('click', ()=> { imgZoom = Math.max(0.5, imgZoom - 0.1); updateZoom(); });
+
+  // Notes rendering
   function renderNotes(notes){
     notesArea.innerHTML = '';
     notes.forEach((n,i)=>{
       const div = document.createElement('div');
       div.className = 'noteCard';
       div.id = `note-${i}`;
-      div.innerHTML = `<div style="flex:1"><strong style="font-size:16px">${n.note}</strong><div style="font-size:13px;color:#6b6f76">t=${n.time}s</div></div><div class="dot" id="dot-${i}" title="status"></div>`;
+      div.style.display = 'flex';
+      div.style.justifyContent = 'space-between';
+      div.style.alignItems = 'center';
+      div.innerHTML = `<div style="flex:1"><strong style="font-size:15px">${n.note}</strong><div style="font-size:13px;color:#6b6f76">t=${n.time}s</div></div><div class="dot" id="dot-${i}" title="status"></div>`;
       notesArea.appendChild(div);
     });
   }
 
-  // Demo scanner: returns expected note 80% of the time
+  // Demo scanner (replace with real scanner)
   function getScannedNoteAt(expectedNote){
     if(Math.random() < 0.8) return expectedNote;
     const notes = ['C3','D3','E3','F3','G3','A3','B3','C4','D4','E4','F4','G4','A4','B4'];
@@ -100,6 +257,7 @@
   }
   function isMatch(expected, scanned){ return expected.toLowerCase() === scanned.toLowerCase(); }
 
+  // Session runner
   let running = false;
   let attempts = 0;
   const maxAttemptsPerNote = 6;
@@ -128,6 +286,7 @@
       for(let i=0;i<notes.length;i++){
         if(!running) break;
         if(state[i].ok) continue;
+        // In a real integration, sync to audioPlayer.currentTime and note.time
         await sleep(300);
         state[i].tries++;
         attempts++;
