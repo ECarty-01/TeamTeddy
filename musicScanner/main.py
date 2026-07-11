@@ -217,42 +217,42 @@ if __name__ == "__main__":
         print([ note.note + " " + note.sym for note in note_group])
 
 # Convert note objects into plain dictionaries
-export_notes = []
-
-for group in note_groups:
-    group_data = []
+    export_notes = []
     
-    # Determine duration for this group
-    for note in group:
-        note_type = note.sym
+    for group in note_groups:
+        group_data = []
         
-        if note_type == "1":
-            duration = 4
-            duration_symbol = "1"
-        elif note_type == "2":
-            duration = 2
-            duration_symbol = "2"
-        elif note_type == "4,8":
-            # quarter if alone, eighth if grouped
-            if len(group) == 1:
-                duration = 1
-                duration_symbol = "4"
-            else:
-                duration = 0.5
-                duration_symbol = "8"
+        # Determine duration for this group
+        for note in group:
+            note_type = note.sym
+            
+            if note_type == "1":
+                duration = 4
+                duration_symbol = "1"
+            elif note_type == "2":
+                duration = 2
+                duration_symbol = "2"
+            elif note_type == "4,8":
+                # quarter if alone, eighth if grouped
+                if len(group) == 1:
+                    duration = 1
+                    duration_symbol = "4"
+                else:
+                    duration = 0.5
+                    duration_symbol = "8"
+            
+            group_data.append({
+                "name": note.note,
+                "duration": duration,
+            })
         
-        group_data.append({
-            "name": note.note,
-            "duration": duration,
-        })
+        export_notes.append(group_data)
     
-    export_notes.append(group_data)
-
-import json
-with open("notes.json", "w") as f:
-    json.dump(export_notes, f, indent=2)
-
-print("Saved note information to notes.json")
+    import json
+    with open("notes.json", "w") as f:
+        json.dump(export_notes, f, indent=2)
+    
+    print("Saved note information to notes.json")
 
 
 
