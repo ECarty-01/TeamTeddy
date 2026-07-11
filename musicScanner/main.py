@@ -216,7 +216,7 @@ if __name__ == "__main__":
     for note_group in note_groups:
         print([ note.note + " " + note.sym for note in note_group])
 
-    # Convert note objects into plain dictionaries
+# Convert note objects into plain dictionaries
 export_notes = []
 
 for group in note_groups:
@@ -233,12 +233,13 @@ for group in note_groups:
         })
     export_notes.append(group_data)
 
-    import json
-    
-    with open("notes.json", "w") as f:
-        json.dump(export_notes, f, indent=2)
-    
-    print("Saved note information to notes.json")
+# SAVE JSON (outside the loop)
+import json
+with open("notes.json", "w") as f:
+    json.dump(export_notes, f, indent=2)
+
+print("Saved note information to notes.json")
+
 
     
     midi = MIDIFile(1)
