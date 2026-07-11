@@ -12,3 +12,8 @@ def scan():
 
     notes = run_scan(file)
     return jsonify(notes)
+
+@bp.route("/", methods=["GET"])
+def home():
+    return "TeamTeddy API is running"
+
