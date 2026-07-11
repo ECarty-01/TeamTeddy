@@ -1,25 +1,17 @@
-from flask import Blueprint, request, jsonify
-from .scanner import run_scan
-
-bp = Blueprint("main", __name__)
-
-@bp.route("/scan", methods=["POST"])
-def scan():
-    file = request.files.get("file")
-
-    if not file:
-        return jsonify({"error": "No file uploaded"}), 400
-
-    notes = run_scan(file)
-    return jsonify(notes)
+from flask import render_template
 
 @bp.route("/", methods=["GET"])
 def home():
-    return """
-    <h1>TeamTeddy</h1>
-    <p>Upload sheet music to scan:</p>
-    <form action="/scan" method="POST" enctype="multipart/form-data">
-        <input type="file" name="file" accept="image/*">
-        <button type="submit">Scan</button>
-    </form>
-    """
+    return render_template("index.html")
+
+@bp.route("/upload", methods=["GET"])
+def upload_page():
+    return render_template("upload.html")
+
+@bp.route("/play", methods=["GET"])
+def play_page():
+    return render_template("play.html")
+
+@bp.route("/results", methods=["GET"])
+def results_page():
+    return render_template("results.html")
