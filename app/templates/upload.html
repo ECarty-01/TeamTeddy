@@ -107,7 +107,7 @@
     localStorage.setItem('musicCheckerSession', JSON.stringify({bpm, notes}));
   });
 
-  saveBtn.addEventListener('click', ()=> location.href="{{ url_for('api.play') }}");
+  saveBtn.addEventListener('click', ()=> location.href="{{ url_for('api.play_page') }}");
 
   preview.addEventListener('blur', ()=>{
     const txt = preview.value.trim();
