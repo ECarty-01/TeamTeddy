@@ -6,13 +6,7 @@ from .rectangle import Rectangle
 from .note import Note
 
 
-# -----------------------------
-# SAFE IMAGE LOADER
-# -----------------------------
-def safe_imread(path):
-    img = cv2.imread(path, 0)
-    cv2.waitKey(1)  # forces OpenCV to release file handles
-    return img
+
 
 
 # -----------------------------
