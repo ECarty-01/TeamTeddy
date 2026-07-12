@@ -24,6 +24,7 @@
   .btn:hover{opacity:0.9}
   .btn:disabled{opacity:0.5;cursor:not-allowed}
   .btn.secondary{background:linear-gradient(90deg,var(--sun),#ffd9b3)}
+  .btn.scan{background:linear-gradient(90deg,#8fd19e,#2f8a5e)}
   textarea{width:100%;height:220px;border-radius:14px;padding:16px;border:1px solid #e6e9ee;margin-top:18px;background:#fff;font-size:15px;font-family:monospace;resize:vertical}
   .notePreview{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:14px;margin-top:18px}
   .noteCard{background:linear-gradient(180deg,#fff,#fffefc);padding:14px;border-radius:12px;border:1px solid rgba(0,0,0,0.03);font-size:15px}
@@ -31,6 +32,8 @@
   .back:hover{background:rgba(0,0,0,0.05)}
   .error{color:#ef4444;margin-top:12px;padding:12px;border-radius:8px;background:#fef2f2}
   .success{color:var(--leaf);margin-top:12px;padding:12px;border-radius:8px;background:#f0fdf4}
+  .loading{color:#0066cc;margin-top:12px;padding:12px;border-radius:8px;background:#f0f4ff}
+  .divider{margin-top:24px;padding-top:24px;border-top:1px solid #e6e9ee}
 </style>
 </head>
 <body>
@@ -41,17 +44,26 @@
       </div>
       <div>
         <h2>Upload Notes</h2>
-        <div class="muted">Supported: JSON with notes array, CSV (time,note), or PDF sheet music. Set BPM if needed.</div>
+        <div class="muted">Upload sheet music (PDF/image), paste JSON/CSV, or manually enter notes.</div>
       </div>
       <a class="back" href="{{ url_for('api.home') }}">Back</a>
     </header>
 
+    <div style="font-weight:700;font-size:14px;margin-bottom:12px">Method 1: Scan Sheet Music (PDF or Image)</div>
     <div class="row">
-      <input id="file" type="file" accept=".json,.csv,.pdf,application/pdf" />
-      <label class="muted" for="bpm">BPM</label>
-      <input id="bpm" type="number" value="120" min="20" max="400" />
-      <button id="parse" class="btn">Parse</button>
-      <button id="save" class="btn secondary" disabled>Save & Play</button>
+      <input id="scanFile" type="file" accept=".pdf,application/pdf,.png,.jpg,.jpeg,.gif,image/*" />
+      <button id="scanBtn" class="btn scan">Scan & Extract Notes</button>
+    </div>
+
+    <div class="divider">
+      <div style="font-weight:700;font-size:14px;margin-bottom:12px">Method 2: Manual Notes Entry</div>
+      <div class="row">
+        <input id="file" type="file" accept=".json,.csv" />
+        <label class="muted" for="bpm">BPM</label>
+        <input id="bpm" type="number" value="120" min="20" max="400" />
+        <button id="parse" class="btn">Parse</button>
+        <button id="save" class="btn secondary" disabled>Save & Play</button>
+      </div>
     </div>
 
     <div id="message"></div>
@@ -65,6 +77,8 @@
   </main>
 
 <script>
+  const scanFile = document.getElementById('scanFile');
+  const scanBtn = document.getElementById('scanBtn');
   const fileInput = document.getElementById('file');
   const parseBtn = document.getElementById('parse');
   const preview = document.getElementById('preview');
@@ -77,11 +91,15 @@
   let currentNotes = null;
 
   function showError(msg){
-    messageDiv.innerHTML = `<div class="error">${msg}</div>`;
+    messageDiv.innerHTML = `<div class="error">❌ ${msg}</div>`;
   }
 
   function showSuccess(msg){
-    messageDiv.innerHTML = `<div class="success">${msg}</div>`;
+    messageDiv.innerHTML = `<div class="success">✓ ${msg}</div>`;
+  }
+
+  function showLoading(msg){
+    messageDiv.innerHTML = `<div class="loading">⏳ ${msg}</div>`;
   }
 
   function parseCSV(text){
@@ -128,6 +146,49 @@
     notesTable.style.display = '';
   }
 
+  function saveSession(){
+    if(currentNotes){
+      const bpm = Number(bpmInput.value) || 120;
+      localStorage.setItem('musicCheckerSession', JSON.stringify({bpm, notes: currentNotes}));
+    }
+  }
+
+  // SCAN ENDPOINT
+  scanBtn.addEventListener('click', async ()=>{
+    messageDiv.innerHTML = '';
+    if(!scanFile.files.length){
+      showError('Select a PDF or image file to scan.');
+      return;
+    }
+
+    showLoading('Scanning sheet music... this may take a moment.');
+    const formData = new FormData();
+    formData.append('file', scanFile.files[0]);
+
+    try{
+      const response = await fetch('{{ url_for("api.scan_pdf") }}', {
+        method: 'POST',
+        body: formData
+      });
+      const data = await response.json();
+
+      if(!response.ok || !data.notes || data.notes.length === 0){
+        showError(data.error || 'No notes detected. Try a clearer image or enter notes manually.');
+        return;
+      }
+
+      currentNotes = data.notes;
+      const bpm = Number(bpmInput.value) || 120;
+      preview.value = JSON.stringify({bpm, notes: data.notes}, null, 2);
+      renderNotesPreview(data.notes);
+      showSuccess(`Scanned ${data.notes.length} notes from the sheet music!`);
+      saveBtn.disabled = false;
+      saveSession();
+    } catch(e){
+      showError('Error scanning file: ' + e.message);
+    }
+  });
+
   parseBtn.addEventListener('click', async ()=>{
     messageDiv.innerHTML = '';
     
@@ -140,12 +201,6 @@
 
     if(fileInput.files.length){
       const f = fileInput.files[0];
-      
-      if(f.type === 'application/pdf' || f.name.endsWith('.pdf')){
-        showError('PDF sheet music detected. This is stored for the Play session. Manually add notes in JSON/CSV format or use the scanner.');
-        return;
-      }
-
       const txt = await f.text();
       notes = parseJSON(txt) || parseCSV(txt);
     } else {
@@ -164,9 +219,9 @@
     const bpm = Number(bpmInput.value) || 120;
     preview.value = JSON.stringify({bpm, notes}, null, 2);
     renderNotesPreview(notes);
-    showSuccess(`✓ Parsed ${notes.length} notes at ${bpm} BPM`);
+    showSuccess(`Parsed ${notes.length} notes at ${bpm} BPM`);
     saveBtn.disabled = false;
-    localStorage.setItem('musicCheckerSession', JSON.stringify({bpm, notes}));
+    saveSession();
   });
 
   saveBtn.addEventListener('click', ()=>{
@@ -182,14 +237,16 @@
     if(notes && notes.length){
       currentNotes = notes;
       saveBtn.disabled = false;
-      localStorage.setItem('musicCheckerSession', JSON.stringify({bpm: Number(bpmInput.value)||120, notes}));
+      saveSession();
     }
   });
 
+  scanFile.addEventListener('change', ()=>{
+    messageDiv.innerHTML = '';
+  });
+
   fileInput.addEventListener('change', ()=>{
-    if(fileInput.files[0]){
-      messageDiv.innerHTML = '';
-    }
+    messageDiv.innerHTML = '';
   });
 </script>
 </body>
