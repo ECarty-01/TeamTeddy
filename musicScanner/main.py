@@ -214,5 +214,7 @@ def process_image(img_path):
             })
 
         export_notes.append(group_data)
+cv2.destroyAllWindows()
+cv2.waitKey(1)
 
     return export_notes
