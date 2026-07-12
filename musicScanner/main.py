@@ -32,6 +32,13 @@ def process_image(img_path):
     # -----------------------------
     # LOAD TEMPLATES SAFELY
     # -----------------------------
+    def safe_imread(path):
+    img = cv2.imread(path, 0)
+    if img is None:
+        print("TEMPLATE MISSING:", path)
+    cv2.waitKey(1)
+    return img
+
     def load_templates(files):
         return [safe_imread(f) for f in files]
 
