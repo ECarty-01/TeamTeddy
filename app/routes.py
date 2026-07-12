@@ -20,7 +20,7 @@ def upload_page():
 
 @bp.route("/play", methods=["GET"])
 def play_page():
-    return render_template("play")
+    return render_template("play.html")
 
 @bp.route("/results", methods=["GET"])
 def results_page():
