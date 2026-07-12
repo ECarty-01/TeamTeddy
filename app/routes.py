@@ -12,7 +12,7 @@ sessions = {}
 
 @bp.route("/", methods=["GET"])
 def home():
-    return render_template("index.html")
+    return render_template("index")
 
 @bp.route("/upload", methods=["GET"])
 def upload_page():
