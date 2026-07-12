@@ -32,13 +32,13 @@
   <main class="wrap">
     <header>
       <div class="brand">
-        <img src="{{url_for('static', filename='RJ_Logo.jpg') }}" alt="Rhythm Judge logo" />
+        <img src="{{ url_for('static', filename='RJ_Logo.jpg') }}" alt="Rhythm Judge logo" />
       </div>
       <div>
         <h2>Upload Notes</h2>
         <div class="muted">Supported: JSON with notes array or CSV (time,note). Set BPM if needed.</div>
       </div>
-      <a class="back" href="index.html">Back</a>
+      <a class="back" href="{{ url_for('api.home') }}">Back</a>
     </header>
 
     <div class="row">
@@ -107,7 +107,7 @@
     localStorage.setItem('musicCheckerSession', JSON.stringify({bpm, notes}));
   });
 
-  saveBtn.addEventListener('click', ()=> location.href='play.html');
+  saveBtn.addEventListener('click', ()=> location.href="{{ url_for('api.play_page') }}");
 
   preview.addEventListener('blur', ()=>{
     const txt = preview.value.trim();
