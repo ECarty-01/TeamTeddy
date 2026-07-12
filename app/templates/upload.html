@@ -18,14 +18,19 @@
   h2{margin:0;font-size:26px}
   .muted{color:var(--muted);font-size:15px}
   .row{display:flex;gap:14px;align-items:center;margin-top:18px;flex-wrap:wrap}
-  input[type=file]{padding:12px;border-radius:12px;border:1px solid rgba(0,0,0,0.04);background:#fff}
+  input[type=file]{padding:12px;border-radius:12px;border:1px solid rgba(0,0,0,0.04);background:#fff;cursor:pointer}
   input[type=number]{padding:12px;border-radius:12px;border:1px solid #e6e9ee;width:120px}
-  .btn{background:linear-gradient(90deg,var(--lavender),var(--pink));padding:12px 16px;border-radius:12px;border:none;color:#2b1730;font-weight:800;cursor:pointer;font-size:15px}
+  .btn{background:linear-gradient(90deg,var(--lavender),var(--pink));padding:12px 16px;border-radius:12px;border:none;color:#2b1730;font-weight:800;cursor:pointer;font-size:15px;transition:opacity 0.2s}
+  .btn:hover{opacity:0.9}
+  .btn:disabled{opacity:0.5;cursor:not-allowed}
   .btn.secondary{background:linear-gradient(90deg,var(--sun),#ffd9b3)}
-  textarea{width:100%;height:220px;border-radius:14px;padding:16px;border:1px dashed rgba(0,0,0,0.06);margin-top:18px;background:linear-gradient(180deg,#fff,#fbfbff);font-size:15px}
+  textarea{width:100%;height:220px;border-radius:14px;padding:16px;border:1px solid #e6e9ee;margin-top:18px;background:#fff;font-size:15px;font-family:monospace;resize:vertical}
   .notePreview{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:14px;margin-top:18px}
   .noteCard{background:linear-gradient(180deg,#fff,#fffefc);padding:14px;border-radius:12px;border:1px solid rgba(0,0,0,0.03);font-size:15px}
-  .back{margin-left:auto;color:var(--muted);text-decoration:none;font-size:15px}
+  .back{margin-left:auto;color:var(--muted);text-decoration:none;font-size:15px;padding:8px 12px;border-radius:8px}
+  .back:hover{background:rgba(0,0,0,0.05)}
+  .error{color:#ef4444;margin-top:12px;padding:12px;border-radius:8px;background:#fef2f2}
+  .success{color:var(--leaf);margin-top:12px;padding:12px;border-radius:8px;background:#f0fdf4}
 </style>
 </head>
 <body>
@@ -36,20 +41,22 @@
       </div>
       <div>
         <h2>Upload Notes</h2>
-        <div class="muted">Supported: JSON with notes array or CSV (time,note). Set BPM if needed.</div>
+        <div class="muted">Supported: JSON with notes array, CSV (time,note), or PDF sheet music. Set BPM if needed.</div>
       </div>
       <a class="back" href="{{ url_for('api.home') }}">Back</a>
     </header>
 
     <div class="row">
-      <input id="file" type="file" accept=".json,.csv" />
+      <input id="file" type="file" accept=".json,.csv,.pdf,application/pdf" />
       <label class="muted" for="bpm">BPM</label>
       <input id="bpm" type="number" value="120" min="20" max="400" />
       <button id="parse" class="btn">Parse</button>
-      <button id="save" class="btn secondary">Save & Play</button>
+      <button id="save" class="btn secondary" disabled>Save & Play</button>
     </div>
 
-    <textarea id="preview" placeholder="Parsed notes preview will appear here"></textarea>
+    <div id="message"></div>
+
+    <textarea id="preview" placeholder="Parsed notes preview will appear here or paste JSON/CSV directly..."></textarea>
 
     <div id="notesTable" style="display:none">
       <div style="margin-top:18px;font-weight:700;font-size:16px">Notes Preview</div>
@@ -65,56 +72,124 @@
   const notePreview = document.getElementById('notePreview');
   const notesTable = document.getElementById('notesTable');
   const saveBtn = document.getElementById('save');
+  const messageDiv = document.getElementById('message');
+
+  let currentNotes = null;
+
+  function showError(msg){
+    messageDiv.innerHTML = `<div class="error">${msg}</div>`;
+  }
+
+  function showSuccess(msg){
+    messageDiv.innerHTML = `<div class="success">${msg}</div>`;
+  }
 
   function parseCSV(text){
     const lines = text.trim().split(/\r?\n/).map(l=>l.trim()).filter(Boolean);
-    const rows = lines.map(l=>l.split(',').map(s=>s.trim()));
     const notes = [];
-    for(let r of rows){
-      if(r.length>=2){
-        const t = parseFloat(r[0]);
-        const n = r[1];
-        if(!isNaN(t)) notes.push({time:t,note:n});
-      }
+    for(let line of lines){
+      if(!line || line.startsWith('#')) continue;
+      const [timeStr, ...noteParts] = line.split(',');
+      const t = parseFloat(timeStr.trim());
+      const n = noteParts.join(',').trim();
+      if(!isNaN(t) && n) notes.push({time: t, note: n});
     }
-    return notes;
+    return notes.length ? notes : null;
   }
+
   function parseJSON(text){
     try{
       const obj = JSON.parse(text);
-      if(Array.isArray(obj.notes)) return obj.notes.map(n=>({time: Number(n.time), note: String(n.note)}));
+      if(Array.isArray(obj.notes)){
+        return obj.notes.map(n=>({time: Number(n.time), note: String(n.note)}));
+      }
+      if(Array.isArray(obj)){
+        return obj.map(n=>({time: Number(n.time || n.t || 0), note: String(n.note || n.n || '')}));
+      }
     }catch(e){}
     return null;
   }
 
-  parseBtn.addEventListener('click', async ()=>{
-    if(!fileInput.files.length){ alert('Choose a file or paste content into the preview area.'); return; }
-    const f = fileInput.files[0];
-    const txt = await f.text();
-    let notes = parseJSON(txt);
-    if(!notes) notes = parseCSV(txt);
-    if(!notes || notes.length===0){ preview.value = 'Could not parse notes. Use JSON or CSV format.'; return; }
-    const bpm = Number(bpmInput.value) || 120;
-    preview.value = JSON.stringify({bpm, notes}, null, 2);
+  function renderNotesPreview(notes){
     notePreview.innerHTML = '';
-    notes.forEach((n,i)=>{
+    notes.slice(0, 20).forEach((n,i)=>{
       const d = document.createElement('div');
       d.className = 'noteCard';
-      d.innerHTML = `<div style="font-weight:700">${n.note}</div><div style="font-size:13px;color:#6b6f76">t=${n.time}s</div>`;
+      d.innerHTML = `<div><strong>${n.note}</strong></div><div style="font-size:12px;color:#6b6f76">t=${n.time}s</div>`;
       notePreview.appendChild(d);
     });
+    if(notes.length > 20){
+      const d = document.createElement('div');
+      d.className = 'noteCard';
+      d.style.textAlign = 'center';
+      d.innerHTML = `<strong>+${notes.length - 20} more</strong>`;
+      notePreview.appendChild(d);
+    }
     notesTable.style.display = '';
+  }
+
+  parseBtn.addEventListener('click', async ()=>{
+    messageDiv.innerHTML = '';
+    
+    if(!fileInput.files.length && !preview.value.trim()){
+      showError('Choose a file or paste JSON/CSV in the preview area.');
+      return;
+    }
+
+    let notes = null;
+
+    if(fileInput.files.length){
+      const f = fileInput.files[0];
+      
+      if(f.type === 'application/pdf' || f.name.endsWith('.pdf')){
+        showError('PDF sheet music detected. This is stored for the Play session. Manually add notes in JSON/CSV format or use the scanner.');
+        return;
+      }
+
+      const txt = await f.text();
+      notes = parseJSON(txt) || parseCSV(txt);
+    } else {
+      const txt = preview.value.trim();
+      notes = parseJSON(txt) || parseCSV(txt);
+    }
+
+    if(!notes || notes.length===0){
+      showError('Could not parse notes. Use JSON format {notes: [{time: 0, note: "C4"}, ...]} or CSV format (time,note).');
+      currentNotes = null;
+      saveBtn.disabled = true;
+      return;
+    }
+
+    currentNotes = notes;
+    const bpm = Number(bpmInput.value) || 120;
+    preview.value = JSON.stringify({bpm, notes}, null, 2);
+    renderNotesPreview(notes);
+    showSuccess(`✓ Parsed ${notes.length} notes at ${bpm} BPM`);
+    saveBtn.disabled = false;
     localStorage.setItem('musicCheckerSession', JSON.stringify({bpm, notes}));
   });
 
-  saveBtn.addEventListener('click', ()=> location.href="{{ url_for('api.play_page') }}");
+  saveBtn.addEventListener('click', ()=>{
+    if(currentNotes){
+      location.href="{{ url_for('api.play_page') }}";
+    }
+  });
 
   preview.addEventListener('blur', ()=>{
     const txt = preview.value.trim();
     if(!txt) return;
-    let notes = parseJSON(txt);
-    if(!notes) notes = parseCSV(txt);
-    if(notes && notes.length) localStorage.setItem('musicCheckerSession', JSON.stringify({bpm: Number(bpmInput.value)||120, notes}));
+    let notes = parseJSON(txt) || parseCSV(txt);
+    if(notes && notes.length){
+      currentNotes = notes;
+      saveBtn.disabled = false;
+      localStorage.setItem('musicCheckerSession', JSON.stringify({bpm: Number(bpmInput.value)||120, notes}));
+    }
+  });
+
+  fileInput.addEventListener('change', ()=>{
+    if(fileInput.files[0]){
+      messageDiv.innerHTML = '';
+    }
   });
 </script>
 </body>
