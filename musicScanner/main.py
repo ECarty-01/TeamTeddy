@@ -1,115 +1,122 @@
 import cv2
 import numpy as np
-import time
 
 from .best_fit import fit
 from .rectangle import Rectangle
 from .note import Note
 
-staff_files = [
-    "musicScanner/resources/template/staff2.png",
-    "musicScanner/resources/template/staff.png"
-]
 
-quarter_files = [
-    "musicScanner/resources/template/quarter.png",
-    "musicScanner/resources/template/solid-note.png"
-]
-
-sharp_files = [
-    "musicScanner/resources/template/sharp.png"
-]
-
-flat_files = [
-    "musicScanner/resources/template/flat-line.png",
-    "musicScanner/resources/template/flat-space.png"
-]
-
-half_files = [
-    "musicScanner/resources/template/half-space.png",
-    "musicScanner/resources/template/half-note-line.png",
-    "musicScanner/resources/template/half-line.png",
-    "musicScanner/resources/template/half-note-space.png"
-]
-
-whole_files = [
-    "musicScanner/resources/template/whole-space.png",
-    "musicScanner/resources/template/whole-note-line.png",
-    "musicScanner/resources/template/whole-line.png",
-    "musicScanner/resources/template/whole-note-space.png"
-]
+# -----------------------------
+# SAFE IMAGE LOADER
+# -----------------------------
+def safe_imread(path):
+    img = cv2.imread(path, 0)
+    cv2.waitKey(1)  # forces OpenCV to release file handles
+    return img
 
 
-# Load template images
-staff_imgs = [cv2.imread(staff_file, 0) for staff_file in staff_files]
-cv2.waitKey(1)
-quarter_imgs = [cv2.imread(quarter_file, 0) for quarter_file in quarter_files]
-cv2.waitKey(1)
-sharp_imgs = [cv2.imread(sharp_file, 0) for sharp_file in sharp_files]
-cv2.waitKey(1)
-flat_imgs = [cv2.imread(flat_file, 0) for flat_file in flat_files]
-cv2.waitKey(1)
-half_imgs = [cv2.imread(half_file, 0) for half_file in half_files]
-cv2.waitKey(1)
-whole_imgs = [cv2.imread(whole_file, 0) for whole_file in whole_files]
-cv2.waitKey(1)
-
-# Matching parameters
-staff_lower, staff_upper, staff_thresh = 50, 150, 0.77
-sharp_lower, sharp_upper, sharp_thresh = 50, 150, 0.70
-flat_lower, flat_upper, flat_thresh = 50, 150, 0.77
-quarter_lower, quarter_upper, quarter_thresh = 50, 150, 0.70
-half_lower, half_upper, half_thresh = 50, 150, 0.70
-whole_lower, whole_upper, whole_thresh = 50, 150, 0.70
-
-
-def locate_images(img, templates, start, stop, threshold):
-    locations, scale = fit(img, templates, start, stop, threshold)
-    img_locations = []
-    for i in range(len(templates)):
-        w, h = templates[i].shape[::-1]
-        w *= scale
-        h *= scale
-        img_locations.append(
-            [Rectangle(pt[0], pt[1], w, h) for pt in zip(*locations[i][::-1])]
-        )
-    return img_locations
-
-
-def merge_recs(recs, threshold):
-    filtered_recs = []
-    while len(recs) > 0:
-        r = recs.pop(0)
-        recs.sort(key=lambda rec: rec.distance(r))
-        merged = True
-        while merged:
-            merged = False
-            i = 0
-            for _ in range(len(recs)):
-                if r.overlap(recs[i]) > threshold or recs[i].overlap(r) > threshold:
-                    r = r.merge(recs.pop(i))
-                    merged = True
-                elif recs[i].distance(r) > r.w / 2 + recs[i].w / 2:
-                    break
-                else:
-                    i += 1
-        filtered_recs.append(r)
-    return filtered_recs
-
-
+# -----------------------------
+# MAIN SCANNER FUNCTION
+# -----------------------------
 def process_image(img_path):
-    # Load image
-    img_gray = cv2.imread(img_path, 0)
-    cv2.waitKey(1)
+    # Load main image safely
+    img_gray = safe_imread(img_path)
     if img_gray is None:
+        print("Scanner: Could not load image:", img_path)
         return []
 
     img = cv2.cvtColor(img_gray, cv2.COLOR_GRAY2RGB)
-    
     _, img_gray = cv2.threshold(img_gray, 127, 255, cv2.THRESH_BINARY)
     img_width, img_height = img_gray.shape[::-1]
 
-    # STAFF MATCHING
+    # -----------------------------
+    # LOAD TEMPLATES SAFELY
+    # -----------------------------
+    def load_templates(files):
+        return [safe_imread(f) for f in files]
+
+    staff_files = [
+        "musicScanner/resources/template/staff2.png",
+        "musicScanner/resources/template/staff.png"
+    ]
+    quarter_files = [
+        "musicScanner/resources/template/quarter.png",
+        "musicScanner/resources/template/solid-note.png"
+    ]
+    sharp_files = ["musicScanner/resources/template/sharp.png"]
+    flat_files = [
+        "musicScanner/resources/template/flat-line.png",
+        "musicScanner/resources/template/flat-space.png"
+    ]
+    half_files = [
+        "musicScanner/resources/template/half-space.png",
+        "musicScanner/resources/template/half-note-line.png",
+        "musicScanner/resources/template/half-line.png",
+        "musicScanner/resources/template/half-note-space.png"
+    ]
+    whole_files = [
+        "musicScanner/resources/template/whole-space.png",
+        "musicScanner/resources/template/whole-note-line.png",
+        "musicScanner/resources/template/whole-line.png",
+        "musicScanner/resources/template/whole-note-space.png"
+    ]
+
+    staff_imgs = load_templates(staff_files)
+    quarter_imgs = load_templates(quarter_files)
+    sharp_imgs = load_templates(sharp_files)
+    flat_imgs = load_templates(flat_files)
+    half_imgs = load_templates(half_files)
+    whole_imgs = load_templates(whole_files)
+
+    # -----------------------------
+    # MATCHING PARAMETERS
+    # -----------------------------
+    staff_lower, staff_upper, staff_thresh = 50, 150, 0.77
+    sharp_lower, sharp_upper, sharp_thresh = 50, 150, 0.70
+    flat_lower, flat_upper, flat_thresh = 50, 150, 0.77
+    quarter_lower, quarter_upper, quarter_thresh = 50, 150, 0.70
+    half_lower, half_upper, half_thresh = 50, 150, 0.70
+    whole_lower, whole_upper, whole_thresh = 50, 150, 0.70
+
+    # -----------------------------
+    # TEMPLATE MATCHING WRAPPER
+    # -----------------------------
+    def locate_images(img, templates, start, stop, threshold):
+        locations, scale = fit(img, templates, start, stop, threshold)
+        img_locations = []
+        for i in range(len(templates)):
+            w, h = templates[i].shape[::-1]
+            w *= scale
+            h *= scale
+            img_locations.append(
+                [Rectangle(pt[0], pt[1], w, h) for pt in zip(*locations[i][::-1])]
+            )
+        return img_locations
+
+    # -----------------------------
+    # MERGE OVERLAPPING RECTS
+    # -----------------------------
+    def merge_recs(recs, threshold):
+        filtered = []
+        while recs:
+            r = recs.pop(0)
+            recs.sort(key=lambda x: x.distance(r))
+            merged = True
+            while merged:
+                merged = False
+                i = 0
+                while i < len(recs):
+                    if r.overlap(recs[i]) > threshold or recs[i].overlap(r) > threshold:
+                        r = r.merge(recs.pop(i))
+                        merged = True
+                    else:
+                        i += 1
+            filtered.append(r)
+        return filtered
+
+    # -----------------------------
+    # STAFF DETECTION
+    # -----------------------------
     staff_recs = locate_images(img_gray, staff_imgs, staff_lower, staff_upper, staff_thresh)
     staff_recs = [j for i in staff_recs for j in i]
 
@@ -124,97 +131,68 @@ def process_image(img_path):
         0.01
     )
 
+    # -----------------------------
     # ACCIDENTALS
-    sharp_recs = locate_images(img_gray, sharp_imgs, sharp_lower, sharp_upper, sharp_thresh)
-    sharp_recs = merge_recs([j for i in sharp_recs for j in i], 0.5)
+    # -----------------------------
+    sharp_recs = merge_recs(
+        [j for i in locate_images(img_gray, sharp_imgs, sharp_lower, sharp_upper, sharp_thresh) for j in i],
+        0.5
+    )
+    flat_recs = merge_recs(
+        [j for i in locate_images(img_gray, flat_imgs, flat_lower, flat_upper, flat_thresh) for j in i],
+        0.5
+    )
 
-    flat_recs = locate_images(img_gray, flat_imgs, flat_lower, flat_upper, flat_thresh)
-    flat_recs = merge_recs([j for i in flat_recs for j in i], 0.5)
-
+    # -----------------------------
     # NOTEHEADS
-    quarter_recs = locate_images(img_gray, quarter_imgs, quarter_lower, quarter_upper, quarter_thresh)
-    quarter_recs = merge_recs([j for i in quarter_recs for j in i], 0.5)
+    # -----------------------------
+    quarter_recs = merge_recs(
+        [j for i in locate_images(img_gray, quarter_imgs, quarter_lower, quarter_upper, quarter_thresh) for j in i],
+        0.5
+    )
+    half_recs = merge_recs(
+        [j for i in locate_images(img_gray, half_imgs, half_lower, half_upper, half_thresh) for j in i],
+        0.5
+    )
+    whole_recs = merge_recs(
+        [j for i in locate_images(img_gray, whole_imgs, whole_lower, whole_upper, whole_thresh) for j in i],
+        0.5
+    )
 
-    half_recs = locate_images(img_gray, half_imgs, half_lower, half_upper, half_thresh)
-    half_recs = merge_recs([j for i in half_recs for j in i], 0.5)
-
-    whole_recs = locate_images(img_gray, whole_imgs, whole_lower, whole_upper, whole_thresh)
-    whole_recs = merge_recs([j for i in whole_recs for j in i], 0.5)
-
+    # -----------------------------
     # GROUP NOTES BY STAFF
+    # -----------------------------
     note_groups = []
+
     for box in staff_boxes:
-        staff_sharps = [
-            Note(r, "sharp", box)
-            for r in sharp_recs
-            if abs(r.middle[1] - box.middle[1]) < box.h * 5.0 / 8.0
-        ]
+        staff_sharps = [Note(r, "sharp", box) for r in sharp_recs if abs(r.middle[1] - box.middle[1]) < box.h * 0.625]
+        staff_flats = [Note(r, "flat", box) for r in flat_recs if abs(r.middle[1] - box.middle[1]) < box.h * 0.625]
 
-        staff_flats = [
-            Note(r, "flat", box)
-            for r in flat_recs
-            if abs(r.middle[1] - box.middle[1]) < box.h * 5.0 / 8.0
-        ]
-
-        quarter_notes = [
-            Note(r, "4,8", box, staff_sharps, staff_flats)
-            for r in quarter_recs
-            if abs(r.middle[1] - box.middle[1]) < box.h * 5.0 / 8.0
-        ]
-
-        half_notes = [
-            Note(r, "2", box, staff_sharps, staff_flats)
-            for r in half_recs
-            if abs(r.middle[1] - box.middle[1]) < box.h * 5.0 / 8.0
-        ]
-
-        whole_notes = [
-            Note(r, "1", box, staff_sharps, staff_flats)
-            for r in whole_recs
-            if abs(r.middle[1] - box.middle[1]) < box.h * 5.0 / 8.0
-        ]
+        quarter_notes = [Note(r, "4,8", box, staff_sharps, staff_flats) for r in quarter_recs if abs(r.middle[1] - box.middle[1]) < box.h * 0.625]
+        half_notes = [Note(r, "2", box, staff_sharps, staff_flats) for r in half_recs if abs(r.middle[1] - box.middle[1]) < box.h * 0.625]
+        whole_notes = [Note(r, "1", box, staff_sharps, staff_flats) for r in whole_recs if abs(r.middle[1] - box.middle[1]) < box.h * 0.625]
 
         staff_notes = quarter_notes + half_notes + whole_notes
         staff_notes.sort(key=lambda n: n.rec.x)
 
-        staffs = [r for r in staff_recs if r.overlap(box) > 0]
-        staffs.sort(key=lambda r: r.x)
+        note_groups.append(staff_notes)
 
-        note_group = []
-        i = 0
-        j = 0
-
-        while i < len(staff_notes):
-            if j < len(staffs) and staff_notes[i].rec.x > staffs[j].x:
-                r = staffs[j]
-                j += 1
-                if len(note_group) > 0:
-                    note_groups.append(note_group)
-                    note_group = []
-            else:
-                note_group.append(staff_notes[i])
-                i += 1
-
-        if len(note_group) > 0:
-            note_groups.append(note_group)
-
+    # -----------------------------
     # BUILD JSON OUTPUT
+    # -----------------------------
     export_notes = []
 
     for group in note_groups:
         group_data = []
-
         for note in group:
-            note_type = note.sym
-
-            if note_type == "1":
+            if note.sym == "1":
                 duration = 4
-            elif note_type == "2":
+            elif note.sym == "2":
                 duration = 2
-            elif note_type == "4,8":
+            elif note.sym == "4,8":
                 duration = 1 if len(group) == 1 else 0.5
             else:
-                duration = 1  # fallback
+                duration = 1
 
             group_data.append({
                 "name": note.note,
@@ -222,7 +200,8 @@ def process_image(img_path):
             })
 
         export_notes.append(group_data)
-        cv2.destroyAllWindows()
-        cv2.waitKey(1)
+
+    cv2.destroyAllWindows()
+    cv2.waitKey(1)
 
     return export_notes
