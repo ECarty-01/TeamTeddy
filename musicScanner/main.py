@@ -42,11 +42,17 @@ whole_files = [
 
 # Load template images
 staff_imgs = [cv2.imread(staff_file, 0) for staff_file in staff_files]
+cv2.waitKey(1)
 quarter_imgs = [cv2.imread(quarter_file, 0) for quarter_file in quarter_files]
+cv2.waitKey(1)
 sharp_imgs = [cv2.imread(sharp_file, 0) for sharp_file in sharp_files]
+cv2.waitKey(1)
 flat_imgs = [cv2.imread(flat_file, 0) for flat_file in flat_files]
+cv2.waitKey(1)
 half_imgs = [cv2.imread(half_file, 0) for half_file in half_files]
+cv2.waitKey(1)
 whole_imgs = [cv2.imread(whole_file, 0) for whole_file in whole_files]
+cv2.waitKey(1)
 
 # Matching parameters
 staff_lower, staff_upper, staff_thresh = 50, 150, 0.77
@@ -94,10 +100,12 @@ def merge_recs(recs, threshold):
 def process_image(img_path):
     # Load image
     img_gray = cv2.imread(img_path, 0)
+    cv2.waitKey(1)
     if img_gray is None:
         return []
 
     img = cv2.cvtColor(img_gray, cv2.COLOR_GRAY2RGB)
+    
     _, img_gray = cv2.threshold(img_gray, 127, 255, cv2.THRESH_BINARY)
     img_width, img_height = img_gray.shape[::-1]
 
