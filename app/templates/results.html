@@ -32,13 +32,13 @@
   <main class="wrap">
     <header>
       <div class="logo">
-        <img src="{{url_for('static', filename='RJ_Logo.jpg') }}" alt="Rhythm Judge logo" />
+        <img src="{{ url_for('static', filename='RJ_Logo.jpg') }}" alt="Rhythm Judge logo" />
       </div>
       <div>
         <h2>Results</h2>
         <div class="muted">Summary of your session and per-note feedback.</div>
       </div>
-      <a style="margin-left:auto;color:var(--muted);text-decoration:none;font-size:15px" href="index.html">Menu</a>
+      <a style="margin-left:auto;color:var(--muted);text-decoration:none;font-size:15px" href="{{ url_for('api.home') }}">Menu</a>
     </header>
 
     <div id="summary"></div>
@@ -58,8 +58,8 @@
   const back = document.getElementById('backToMenu');
   const retry = document.getElementById('retryPlay');
 
-  back.addEventListener('click', ()=> location.href='index.html');
-  retry.addEventListener('click', ()=> location.href='play.html');
+  back.addEventListener('click', ()=> location.href="{{ url_for('api.home') }}");
+  retry.addEventListener('click', ()=> location.href="{{ url_for('api.play_page') }}");
 
   if(!results){
     summary.innerHTML = '<div class="muted" style="margin-top:18px">No results found. Run a session first.</div>';
