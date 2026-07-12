@@ -2,7 +2,7 @@ from flask import Blueprint, request, jsonify, render_template
 import sys
 import os
 import tempfile
-import cv2
+# import cv2
 from werkzeug.utils import secure_filename
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
